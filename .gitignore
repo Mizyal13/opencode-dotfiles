@@ -1,0 +1,13 @@
+# Dependency & runtime
+node_modules/
+bun.lock
+bun.lockb
+
+# OS junk
+.DS_Store
+*.log
+
+# Local runtime data (tidak perlu di-sync)
+opencode.db
+opencode.db-shm
+opencode.db-wal
