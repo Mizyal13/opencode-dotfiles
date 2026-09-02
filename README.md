@@ -39,6 +39,15 @@ Repo: https://github.com/Mizyal13/opencode-dotfiles (private)
 
 ```bash
 # 1. Clone into opencode's global config folder
+
+#for backup
+mv ~/.config/opencode ~/.config/opencode.backup
+git clone https://github.com/Mizyal13/opencode-dotfiles ~/.config/opencode
+
+#for change
+rm -rf ~/.config/opencode
+git clone https://github.com/Mizyal13/opencode-dotfiles ~/.config/opencode
+
 git clone https://github.com/Mizyal13/opencode-dotfiles ~/.config/opencode
 
 # 2. Install plugin dependencies (Bun creates node_modules)
