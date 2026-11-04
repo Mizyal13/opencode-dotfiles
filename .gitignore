@@ -11,3 +11,4 @@ bun.lockb
 opencode.db
 opencode.db-shm
 opencode.db-wal
+backups/
