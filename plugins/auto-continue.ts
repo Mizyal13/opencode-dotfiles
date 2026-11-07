@@ -20,7 +20,7 @@ const PRUNE_MS = Number(process.env.OPENCODE_AUTO_CONTINUE_PRUNE_MS ?? 7 * 24 * 
 const STARTUP_NOTICE_MS = Number(process.env.OPENCODE_AUTO_CONTINUE_NOTICE_MS ?? 8_000);
 const SAVE_DEBOUNCE_MS = 1_500;
 
-const DEFAULT_AGENTS = ["extreme", "hermes", "build"];
+const DEFAULT_AGENTS = ["extreme", "build"];
 const AGENTS = new Set(
   (process.env.OPENCODE_AUTO_CONTINUE_AGENTS ?? DEFAULT_AGENTS.join(","))
     .split(",")
@@ -115,7 +115,6 @@ function loadState(): void {
     const raw = readFileSync(STATE_PATH, "utf8");
     const data = JSON.parse(raw) as Partial<PersistedState>;
     if (data && data.version === 1) {
-      lastSessionID = typeof data.lastSessionID === "string" ? data.lastSessionID : null;
       for (const [id, value] of Object.entries(data.sessions ?? {})) {
         if (!value || typeof value !== "object") continue;
         const w = { ...emptyWatch(id), ...(value as Watch), id };
@@ -487,9 +486,6 @@ export const autoContinue: Plugin = async ({ client }: { client: Client }) => {
           if (!w) return;
           if (info?.role === "assistant" && info?.error) {
             await handleError(client, info.sessionID, info.error);
-          }
-          if (info?.role === "user" && info?.sessionID) {
-            lastSessionID = info.sessionID;
           }
           touch(w);
           return;

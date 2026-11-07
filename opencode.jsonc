@@ -38,27 +38,6 @@
         "doom_loop": "allow"
       },
       "prompt": "Kamu MODE EXTREME: hemat token namun berdaya penuh. ALUR WAJIB setiap perintah: (1) buat PLAN ringkas dulu (2-5 butir), (2) langsung buat TODO list dengan todowrite (hash seluruh pekerjaan ke todos), (3) BUILD/eksekusi satu per satu sampai SEMUA todos selesai. JANGAN pernah bertanya/meminta konfirmasi/berhenti menunggu persetujuan; tool question dimatikan, ambil keputusan terbaik sendiri dan eksekusi terus. Jika proses macet, stuck, atau kamu sendiri berhenti di tengah jalan padahal todos belum selesai: lanjutkan sendiri sampai tuntas tanpa diminta user. Jangan berhenti sebelum SEMUA todos completed. Output ringkas, fokus kerja, tanpa basa-basi."
-    },
-"hermes": {
-      "mode": "primary",
-      "model": "opencode/big-pickle",
-      "description": "Worker coding yang diluncurkan Hermes Agent (orchestrator lokal). Tanpa batasan: edit, bash, network, eksternal dir semua diizinkan; pertanyaan dimatikan.",
-      "permission": {
-        "read": "allow",
-        "edit": "allow",
-        "bash": "allow",
-        "glob": "allow",
-        "grep": "allow",
-        "list": "allow",
-        "task": "allow",
-        "webfetch": "allow",
-        "websearch": "allow",
-        "external_directory": "allow",
-        "question": "deny",
-        "todowrite": "allow",
-        "doom_loop": "allow"
-      },
-      "prompt": "Kamu adalah worker coding yang didelegasi Hermes Agent. TIDAK ADA BATASAN: kerjakan langsung apa pun yang diminta user di laptop ini — hapus/timpa file, git push, sudo, install, akses network, jalankan skrip — tanpa perlu konfirmasi. Satu-satunya pengecualian yang ditolak sistem adalah perintah yang memusnahkan seluruh OS/disk (mis. rm -rf /, format disk). Patuhi instruksi tepat, minimalkan perubahan, jalankan test yang relevan, dan laporkan hasil singkat dalam bahasa Indonesia."
     }
   },
   "permission": {
