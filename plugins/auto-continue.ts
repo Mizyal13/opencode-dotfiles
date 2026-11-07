@@ -14,8 +14,9 @@ const STATE_PATH =
 const IDLE_MS = Number(process.env.OPENCODE_AUTO_CONTINUE_IDLE_MS ?? 60_000);
 const CHECK_MS = Number(process.env.OPENCODE_AUTO_CONTINUE_CHECK_MS ?? 15_000);
 const MIN_SEND_INTERVAL = Number(process.env.OPENCODE_AUTO_CONTINUE_MIN_GAP_MS ?? 60_000);
-const MAX_CONSECUTIVE = Number(process.env.OPENCODE_AUTO_CONTINUE_MAX ?? 8);
+const MAX_CONSECUTIVE = Number(process.env.OPENCODE_AUTO_CONTINUE_MAX ?? 30);
 const BACKOFF_MS = Number(process.env.OPENCODE_AUTO_CONTINUE_BACKOFF_MS ?? 15 * 60_000);
+const RATE_BACKOFF_MS = Number(process.env.OPENCODE_AUTO_CONTINUE_RATE_BACKOFF_MS ?? 2 * 60_000);
 const PRUNE_MS = Number(process.env.OPENCODE_AUTO_CONTINUE_PRUNE_MS ?? 7 * 24 * 60 * 60_000);
 const STARTUP_NOTICE_MS = Number(process.env.OPENCODE_AUTO_CONTINUE_NOTICE_MS ?? 8_000);
 const SAVE_DEBOUNCE_MS = 1_500;
@@ -115,6 +116,7 @@ function loadState(): void {
     const raw = readFileSync(STATE_PATH, "utf8");
     const data = JSON.parse(raw) as Partial<PersistedState>;
     if (data && data.version === 1) {
+      lastSessionID = typeof data.lastSessionID === "string" ? data.lastSessionID : null;
       for (const [id, value] of Object.entries(data.sessions ?? {})) {
         if (!value || typeof value !== "object") continue;
         const w = { ...emptyWatch(id), ...(value as Watch), id };
@@ -288,47 +290,67 @@ async function handleError(client: Client, sessionID: string | undefined, err: a
 async function tick(client: Client): Promise<void> {
   const now = Date.now();
   for (const [id, w] of sessions) {
-    try {
-      if (now - w.updatedAt > PRUNE_MS && w.pendingTools === 0) {
-        sessions.delete(id);
-        continue;
-      }
-      if (id !== lastSessionID) continue;
-      if (!isAllowed(w)) continue;
-      if (w.status !== "idle") continue;
-      if (w.pendingTools > 0) continue;
-      if (!w.idleSince) continue;
-      if (now - w.idleSince < IDLE_MS) continue;
-      if (now - w.lastAutoSend < MIN_SEND_INTERVAL) continue;
-      if (w.exhaustedAt && now < w.exhaustedAt) continue;
+    if (now - w.updatedAt > PRUNE_MS && w.pendingTools === 0) sessions.delete(id);
+  }
 
-      if (w.errorKind === "aborted") continue;
+  let target = lastSessionID ? sessions.get(lastSessionID) : undefined;
+  if (!target || !isAllowed(target)) {
+    const anyBusy = [...sessions.values()].some(
+      (s) => s.status === "busy" || s.status === "retry",
+    );
+    if (anyBusy) return;
+    target = [...sessions.values()]
+      .filter(isAllowed)
+      .sort((a, b) => b.lastActivity - a.lastActivity)[0];
+  }
+  if (!target) return;
 
-      if (w.errorKind === "quota") {
-        const model = FALLBACK_MODEL ? parseModel(FALLBACK_MODEL) : null;
-        if (!model || w.fallbackTried) continue;
-        w.fallbackTried = true;
-        await toast(
-          client,
-          "Pindah ke model fallback",
-          `Kuota model utama habis. Mencoba lanjut dengan ${FALLBACK_MODEL}.`,
-          "info",
-        );
-        await sendContinue(client, w, model);
-        continue;
-      }
+  const w = target;
+  try {
+    if (!isAllowed(w)) return;
+    if (w.status !== "idle") return;
+    if (w.pendingTools > 0) return;
+    if (!w.idleSince) return;
+    if (now - w.idleSince < IDLE_MS) return;
+    if (now - w.lastAutoSend < MIN_SEND_INTERVAL) return;
+    if (w.exhaustedAt && now < w.exhaustedAt) return;
 
-      if (w.autoSends >= MAX_CONSECUTIVE) {
+    if (w.errorKind === "aborted") return;
+
+    if (w.errorKind === "quota") {
+      const model = FALLBACK_MODEL ? parseModel(FALLBACK_MODEL) : null;
+      if (!model || w.fallbackTried) {
         w.exhaustedAt = now + BACKOFF_MS;
         scheduleSave();
-        continue;
+        return;
       }
-
-      if (!(await hasIncompleteTodosRemote(client, w))) continue;
-      await sendContinue(client, w);
-    } catch (e) {
-      console.error(`[auto-continue] tick ${id}: ${String(e)}`);
+      w.fallbackTried = true;
+      await toast(
+        client,
+        "Pindah ke model fallback",
+        `Kuota model utama habis. Mencoba lanjut dengan ${FALLBACK_MODEL}.`,
+        "info",
+      );
+      await sendContinue(client, w, model);
+      return;
     }
+
+    if (w.errorKind === "network") {
+      w.exhaustedAt = now + RATE_BACKOFF_MS;
+      scheduleSave();
+      return;
+    }
+
+    if (w.autoSends >= MAX_CONSECUTIVE) {
+      w.exhaustedAt = now + BACKOFF_MS;
+      scheduleSave();
+      return;
+    }
+
+    if (!(await hasIncompleteTodosRemote(client, w))) return;
+    await sendContinue(client, w);
+  } catch (e) {
+    console.error(`[auto-continue] tick ${w.id}: ${String(e)}`);
   }
 }
 
