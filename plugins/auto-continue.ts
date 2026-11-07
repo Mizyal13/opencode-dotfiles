@@ -255,6 +255,8 @@ async function sendContinue(client: Client, w: Watch, model?: { providerID: stri
   w.autoSends += 1;
   w.idleSince = 0;
   w.status = "busy";
+  w.exhaustedAt = 0;
+  w.errorKind = null;
   w.lastActivity = now;
   w.updatedAt = now;
   scheduleSave();
@@ -321,6 +323,7 @@ async function tick(client: Client): Promise<void> {
       const model = FALLBACK_MODEL ? parseModel(FALLBACK_MODEL) : null;
       if (!model || w.fallbackTried) {
         w.exhaustedAt = now + BACKOFF_MS;
+        w.errorKind = null;
         scheduleSave();
         return;
       }
@@ -337,6 +340,7 @@ async function tick(client: Client): Promise<void> {
 
     if (w.errorKind === "network") {
       w.exhaustedAt = now + RATE_BACKOFF_MS;
+      w.errorKind = null;
       scheduleSave();
       return;
     }
