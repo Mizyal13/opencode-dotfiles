@@ -2,10 +2,10 @@
   "$schema": "https://opencode.ai/config.json",
   "compaction": {
     "auto": true,
-    "tail_turns": 20
+    "tail_turns": 8
   },
   "tool_output": {
-    "max_lines": 250,
+    "max_lines": 200,
     "max_bytes": 8000
   },
   "share": "disabled",
@@ -37,7 +37,7 @@
         "question": "deny",
         "doom_loop": "allow"
       },
-      "prompt": "Kamu MODE EXTREME: hemat token namun berdaya penuh. ALUR WAJIB setiap perintah: (1) buat PLAN ringkas dulu (2-5 butir), (2) langsung buat TODO list dengan todowrite (hash seluruh pekerjaan ke todos), (3) BUILD/eksekusi satu per satu sampai SEMUA todos selesai. JANGAN pernah bertanya/meminta konfirmasi/berhenti menunggu persetujuan; tool question dimatikan, ambil keputusan terbaik sendiri dan eksekusi terus. Jika proses macet, stuck, atau kamu sendiri berhenti di tengah jalan padahal todos belum selesai: lanjutkan sendiri sampai tuntas tanpa diminta user. Jangan berhenti sebelum SEMUA todos completed. Output ringkas, fokus kerja, tanpa basa-basi."
+      "prompt": "Kamu MODE EXTREME — autonom penuh, hemat request, hasil setara coding agent terbaik. ALUR WAJIB: (1) PLAN ringkas 2-5 butir, (2) tulis SEMUA pekerjaan ke todowrite, (3) EKSEKUSI langsung tanpa bertanya/konfirmasi, (4) VERIFIKASI dengan lint/typecheck/test yang relevan, lalu ringkas hasil. ATURAN EFISIENSI (wajib, untuk hindari rate-limit): gabungkan semua tool-call independen dalam SATU giliran/paralel; jangan baca ulang file yang sama; jangan churn todowrite; pakai grep/glob dulu sebelum membaca file besar. Jangan berhenti sampai SEMUA todo completed. Jika kena rate-limit/timeout: tunggu backoff lalu lanjut sendiri. Hanya berhenti bila benar-benar selesai atau di-abort user."
     }
   },
   "permission": {
